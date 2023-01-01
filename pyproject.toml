@@ -9,9 +9,10 @@ packages = [{include = "disaster_tweet_classification"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 pandas = "^1.5.2"
-streamlit = "^1.16.0"
 gensim = "^4.3.0"
 
+[tool.poetry.group.dev.dependencies]
+streamlit = "^1.16.0"
 
 [build-system]
 requires = ["poetry-core"]
