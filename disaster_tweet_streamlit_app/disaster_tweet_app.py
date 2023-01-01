@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from xgboost import XGBClassifier
+import os
 
 import util
 
@@ -16,6 +17,9 @@ RANDOM_STATE = 1
 
 train_df = pd.DataFrame()
 
+current_dir = os.path.dirname(__file__)
+train_data_fp = os.path.join(current_dir, "..", "data/train.csv")
+
 
 with eda:
     st.header("Disaster Tweet Classification- Data Science Project")
@@ -23,7 +27,7 @@ with eda:
 
     # importing the dataset
 
-    tweets_df_train = pd.read_csv('../data/train.csv')
+    tweets_df_train = pd.read_csv(train_data_fp)
 
     st.write(tweets_df_train.tail(5))
 
