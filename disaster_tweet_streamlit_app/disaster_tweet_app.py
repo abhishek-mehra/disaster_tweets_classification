@@ -56,7 +56,7 @@ with eda:
 
 with data_prep:
     st.header('Data Preparations For Machine Learning')
-    
+
     form_dp = st.form(key='dp')
 
     data_cleaning_ouput = form_dp.selectbox(
@@ -69,9 +69,9 @@ with data_prep:
     data_prep_form_submit_button_output = form_dp.form_submit_button(
         "Submit for data preparations")
 
-    
+
     if data_prep_form_submit_button_output:
-        if data_cleaning_ouput == 'Yes': 
+        if data_cleaning_ouput == 'Yes':
             tweets_df_train = util.clean_tweets(tweets_df_train, "text")
 
         #filling missing values in keyword and location
@@ -81,7 +81,7 @@ with data_prep:
         tweets_df_train = util.trim_spaces(tweets_df_train)
 
         # vectorisation
-        
+
 
         if vectoriser_output == 'CountVectoriser':
             train_df = util.clean_vectorize_using_count_vectorizer(tweets_df_train,'text')
@@ -96,20 +96,20 @@ with data_prep:
         train_df = pd.concat([train_df, gd_keyword, gd_location],axis=1)  #joining vectorised text,location and keyword features
 
 
-    
+
         train_df["target"] = tweets_df_train["target"]
 
         st.write(train_df.head())
         st.write(train_df.shape)
         st.write(train_df['target'])
 
-    
+
 
 
 with machine_learning:
     st.header('Training a model to classify tweets')
 
-    
+
 
     form_ml = st.form(key='ml')
     # 2. asking user for Model selection: (a) Random Forest

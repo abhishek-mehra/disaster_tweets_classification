@@ -33,7 +33,7 @@ def make_dummies(df):
 
     return gd, gd2
 
-    
+
 
 
 def clean_vectorize_using_count_vectorizer(df, text_col):
@@ -49,8 +49,8 @@ def clean_vectorize_using_count_vectorizer(df, text_col):
         _type_: _description_
     """
     cv = CountVectorizer()  #creating cv ,CountVectorizer object
-    cv_train = cv.fit_transform(df[text_col]) 
-    df = pd.DataFrame(cv_train.todense(),columns = cv.get_feature_names_out())     
+    cv_train = cv.fit_transform(df[text_col])
+    df = pd.DataFrame(cv_train.todense(),columns = cv.get_feature_names_out())
 
     return df
 
@@ -77,7 +77,7 @@ def remove_url(text):
     return url.sub(r'',text)
 
 def remove_html(text):
-    html=re.compile(r'<.*?>')    
+    html=re.compile(r'<.*?>')
     return html.sub(r'',text)   #removing html texts
 
 def remove_punct(text):
@@ -108,7 +108,7 @@ def location_occurence(df):
     top_10.plot.barh()
     return fig
 
-    
+
 
 def keyword_occurence(df):
     top_10 = df['keyword'].value_counts()[:10]
