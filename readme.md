@@ -7,7 +7,7 @@ Why:
 I am a frequent Twitter user who uses it to follow specific people and find a lot of useful information. I chose this dataset from the Twitter First NLP project for that purpose. I chose a basic project to start with, which will help with the basics of NLP.
 
 Issue Statement
-The idea of the project was to use the tweets to identify disasters happening in real time.
+The idea of the project was to use tweets to identify disasters happening in real time.
 
 Use Case
 Tweets can be monitored by news or disaster agencies to act quickly.
@@ -21,7 +21,7 @@ EDA: When I performed explanatory data analysis on the tweets, I found that they
 
 Feature Engineering- I used one hot encoding for keyword and location features.
 
-I made an approach by limiting the tweets to main keywords that provide a certain value.
+I made an approach by limiting the tweets to the main keywords that provide a certain value.
 
 Learning - Utilized Count Vectorizer to convert text into vectors. Count Vectorizer gives a vector to words in sentences and forms.
 Which algorithm- RandomForestClassifier
