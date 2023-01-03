@@ -96,13 +96,12 @@ with data_prep:
 
         if vectoriser_output == 'Glove':
             glove_twitter = gensim.downloader.load('glove-twitter-200')
-            train_df['tweet_vector'] = train_df['cleaned_text'].apply(
-                lambda x: util.tweet_vec(x, glove_twitter))
+            train_df['tweet_vector'] = train_df['cleaned_text'].apply(lambda x: util.tweet_vec(x, glove_twitter))
             train_df.dropna(subset=['tweet_vector'], inplace=True)
             train_df['average_vector'] = train_df['tweet_vector'].apply(
                 util.average_vec)
 
-        st.write(train_df.head(1))
+
 
         if model_selection_ouput == 'Random Forest Classifier':
             model_selection = RandomForestClassifier(
@@ -111,7 +110,8 @@ with data_prep:
             model_selection = XGBClassifier(n_estimators=estimators_input,
                                 random_state=RANDOM_STATE, n_jobs=-1)
 
-        if vectoriser_output == 'CountVectoriser' or 'TfidVectoriser':
+        if vectoriser_output == 'TfidVectoriser':
+            st.write(train_df.head(1))
             train_df["target"] = tweets_df["target"]
             X_train, X_test, y_train, y_test = util.ttsplit(train_df)
 
@@ -123,7 +123,8 @@ with data_prep:
             st.write('The recall score is:', result_dic['recall'])
             st.write('The roc auc  is:', result_dic['roc'])
 
-        else:
+        if vectoriser_output == 'Glove':
+            st.write(train_df.head(1))
             output_dic = util.cv_score_model(df = train_df[['target','average_vector']], model=model_selection, feature_column='average_vector')
 
             st.write('Mean F1 score is:   ', output_dic['f1'])
@@ -133,50 +134,50 @@ with data_prep:
 
 
 
-        st.write(train_df.head(1))
+        # st.write(train_df.head(1))
 
 
 
 
-with machine_learning:
-    st.header('Input a tweet which you want to classify')
+# with machine_learning:
+#     st.header('Input a tweet which you want to classify')
 
 
 
-    form_ml = st.form(key='ml')
-    # 2. asking user for Model selection: (a) Random Forest
-    model_selection_ouput = form_ml.selectbox(
-        'Which model do you want to select ?', ('Random Forest Classifier','XGBClassifier', ))
+#     form_ml = st.form(key='ml')
+#     # 2. asking user for Model selection: (a) Random Forest
+#     model_selection_ouput = form_ml.selectbox(
+#         'Which model do you want to select ?', ('Random Forest Classifier','XGBClassifier', ))
 
-    # 3.asking user for Model selection: (a)number of estimators
-    estimators_input = form_ml.slider(
-        'What should be the number of trees?', min_value=100, max_value=600, step=100)
+#     # 3.asking user for Model selection: (a)number of estimators
+#     estimators_input = form_ml.slider(
+#         'What should be the number of trees?', min_value=100, max_value=600, step=100)
 
-    # 3 asking user for max depth
-    # max_depth_input = form_ml.slider(
-        # 'What should be the max depth of trees?', min_value=2, max_value=8, step=1)
+#     # 3 asking user for max depth
+#     # max_depth_input = form_ml.slider(
+#         # 'What should be the max depth of trees?', min_value=2, max_value=8, step=1)
 
-    # 4 asking user for cv folds
-    # n_folds = form_ml.slider('How many CV folds?',
-                            #  min_value=5, max_value=10, step=1)
+#     # 4 asking user for cv folds
+#     # n_folds = form_ml.slider('How many CV folds?',
+#                             #  min_value=5, max_value=10, step=1)
 
-    ml_form_submit_button_output = form_ml.form_submit_button(
-        "Submit for training and evaluation")
-
-
-    if ml_form_submit_button_output:
-        if model_selection_ouput == 'Random Forest Classifier':
-            model = RandomForestClassifier(
-                n_estimators=estimators_input, random_state=RANDOM_STATE, n_jobs=-1)
-        else:
-            model = XGBClassifier(n_estimators=estimators_input,
-                                   random_state=RANDOM_STATE, n_jobs=-1)
+#     ml_form_submit_button_output = form_ml.form_submit_button(
+#         "Submit for training and evaluation")
 
 
-    # splitting data
-        train_df["target"] = tweets_df["target"]
-        X_train, X_test, y_train, y_test = util.ttsplit(train_df)
+#     if ml_form_submit_button_output:
+#         if model_selection_ouput == 'Random Forest Classifier':
+#             model = RandomForestClassifier(
+#                 n_estimators=estimators_input, random_state=RANDOM_STATE, n_jobs=-1)
+#         else:
+#             model = XGBClassifier(n_estimators=estimators_input,
+#                                    random_state=RANDOM_STATE, n_jobs=-1)
 
-        result_test_dic = util.training_eval(model, X_train, X_test, y_train, y_test)
 
-        st.write('the f1 score is:', result_test_dic['f1'])
+#     # splitting data
+#         train_df["target"] = tweets_df["target"]
+#         X_train, X_test, y_train, y_test = util.ttsplit(train_df)
+
+#         result_test_dic = util.training_eval(model, X_train, X_test, y_train, y_test)
+
+#         st.write('the f1 score is:', result_test_dic['f1'])
