@@ -228,9 +228,9 @@ matplotlib==3.6.2 ; python_version >= "3.10" and python_version < "4.0" \
     --hash=sha256:f41e57ad63d336fe50d3a67bb8eaa26c09f6dda6a59f76777a99b8ccd8e26aec
 miniful==0.0.6 ; python_version >= "3.10" and python_version < "4.0" \
     --hash=sha256:642c9f36b87c81b3efc29947379b5b99b8d33185c904a7bc320d89a8e1871429
-nltk==3.8 ; python_version >= "3.10" and python_version < "4.0" \
-    --hash=sha256:3306502f487aa9fb0566e23443fa287a85a8d8d0821e2ef1655b4e3f0ea4aeee \
-    --hash=sha256:74b30826a37d78d53427105bbd037dd880251be269fca64ee530838a46ed55fc
+nltk==3.8.1 ; python_version >= "3.10" and python_version < "4.0" \
+    --hash=sha256:1834da3d0682cba4f2cede2f9aad6b0fafb6461ba451db0efb6f9c39798d64d3 \
+    --hash=sha256:fd5c9109f976fa86bcadba8f91e47f5e9293bd034474752e92a520f81c93dda5
 numpy==1.24.1 ; python_version < "4.0" and python_version >= "3.10" \
     --hash=sha256:0044f7d944ee882400890f9ae955220d29b33d809a038923d88e4e01d652acd9 \
     --hash=sha256:0e3463e6ac25313462e04aea3fb8a0a30fb906d5d300f58b3bc2c23da6a15398 \

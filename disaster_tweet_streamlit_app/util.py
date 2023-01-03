@@ -1,7 +1,7 @@
 from matplotlib import pyplot as plt
 from regex import R
-from sklearn.metrics import classification_report, f1_score, precision_score, recall_score
-from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, f1_score, precision_score, recall_score, roc_auc_score
+from sklearn.model_selection import StratifiedKFold, train_test_split
 import pandas as pd
 import re
 import string
@@ -9,10 +9,107 @@ from nltk.tokenize import word_tokenize
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from xgboost import train
 import streamlit as st
+import nltk
 from nltk.stem import WordNetLemmatizer, PorterStemmer
 from nltk.corpus import stopwords
+nltk.download('stopwords')
+import numpy as np
 
 RANDOM_STATE = 1
+
+
+def cv_score_model(df, model, folds=5 ,feature_column=None ,label_col_name="target"):
+
+
+
+    y = df[label_col_name].values  #dataframe to numpy array
+
+    if feature_column:        # this function will covert average vector to a single list of arrays, earlier it was list of multiple arrays
+        x = df.drop(label_col_name, axis=1, inplace=False)
+        x = x[feature_column]
+        x = np.vstack(x)
+
+    else:
+        x = df.drop(label_col_name, axis=1, inplace=False).values   #dataframe to numpy array
+
+    skfold = StratifiedKFold(random_state=RANDOM_STATE, n_splits=folds, shuffle=True) #creating object of StratifiedKFold class
+
+    f1_score_c= []   #initialzing empty list to store f1 scores of cross validation folds
+    roc_auc= []
+    precision  = []
+    recall = []
+
+    fn = 0
+
+    for train_i, test_i in skfold.split(x, y):   # skfold.split returns the indices
+        X_train = x[train_i]
+        y_train = y[train_i]
+
+        X_test = x[test_i]
+        y_test = y[test_i]
+
+        model.fit(X_train, y_train)
+
+        pred = model.predict(X_test)
+
+        f1 = f1_score(y_test,pred)
+        f1_score_c.append(f1)
+
+        roc = roc_auc_score(y_test,pred)
+        roc_auc.append(roc)
+
+        prec = precision_score(y_test,pred)
+        precision.append(prec)
+
+        rec = recall_score(y_test,pred)
+        recall.append(rec)
+
+
+
+        # fn += 1
+        # print("Done with fold: ", fn)
+    output_dictionary = {'f1': np.round(np.mean(f1_score_c),3),
+                         'precision': np.round(np.mean(precision),3),
+                         'recall': np.round(np.mean(recall),3),
+                         'roc':np.round(np.mean(roc_auc),3)
+                         }
+
+
+    return output_dictionary
+    # st.write(print (f"precison_mean = {np.round(np.mean(precision),3)}, recall_mean= {np.round(np.mean(recall),3)}, f1_score_mean={np.round(np.mean(f1_score_c),3)},roc_mean= {np.round(np.mean(roc_auc),3)}"))
+
+
+def average_vec(vec):
+    return np.average(vec, axis=0)
+
+
+def tweet_vec(tweet, pretrained_vec):
+    tweet_word_vectors = []
+    if not tweet:         #if tweet is ''
+        return np.nan
+
+    tweet_words = tweet.split()
+
+    for word in tweet_words:
+        if word  in pretrained_vec:
+            tweet_word_vectors.append(pretrained_vec[word])
+
+
+    if not tweet_word_vectors:           #if tweet = 'asdas asdasdasd'
+        return np.nan
+
+
+    return np.array(tweet_word_vectors)
+
+
+def vectorization_df(vectorizer,df):
+
+    train_counvec = vectorizer.fit_transform(df['cleaned_text'])
+    train_df_vec = pd.DataFrame(train_counvec.todense(), columns = vectorizer.get_feature_names_out())
+    print(train_counvec.shape)
+
+    return train_df_vec
+
 
 
 
@@ -221,6 +318,12 @@ def ttsplit(df, label_col_name='target', feature_column=None, test_size=0.2):
 
     return X_train, X_test, y_train, y_test
 
+def train_full_dataset(model, dataset, user_input, label_col_name='target'):
+    df = dataset.drop(label_col_name, axis=1, inplace=False)
+    y = dataset[label_col_name]
+
+    model.fit(df, y ) # fitting the entire dataset along with target labels
+
 
 
 def training_eval(model, X_train, X_test, y_train, y_test):
@@ -241,6 +344,7 @@ def training_eval(model, X_train, X_test, y_train, y_test):
     output_dic = {'f1': round(f1_score(y_test, predictions), 3),
                   'precision': round(precision_score(y_test, predictions), 3),
                   'recall': round(recall_score(y_test, predictions), 3),
+                  'roc': round(roc_auc_score(y_test, predictions),3),
                   'classification': classification_report(y_test, predictions, output_dict=True),
                   'false_positves': fp_df,
                   'false_negatives': fn_df}

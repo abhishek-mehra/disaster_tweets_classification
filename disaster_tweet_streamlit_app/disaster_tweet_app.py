@@ -1,3 +1,4 @@
+from matplotlib.style import use
 from sklearn.ensemble import RandomForestClassifier
 import streamlit as st
 import pandas as pd
@@ -5,7 +6,8 @@ import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from xgboost import XGBClassifier
 import os
-
+import gensim
+import gensim.downloader
 import util
 
 eda = st.container()
@@ -17,8 +19,10 @@ RANDOM_STATE = 1
 
 train_df = pd.DataFrame()
 
-current_dir = os.path.dirname(__file__)           # sets the path of current directory
-train_data_fp = os.path.join(current_dir, "..", "data/train.csv")  #this will tell that file is in previous directory i.e one step behind the current directory in data folder
+# sets the path of current directory
+current_dir = os.path.dirname(__file__)
+# this will tell that file is in previous directory i.e one step behind the current directory in data folder
+train_data_fp = os.path.join(current_dir, "..", "data/train.csv")
 
 
 with eda:
@@ -54,53 +58,93 @@ with eda:
     #     'Click to see most common words in the tweet')
 
 
-
 with data_prep:
-    st.header('Data Preparations For Machine Learning')
+    st.header('Preparations For Machine Learning')
 
     # making a form for data preparations options
-
     form_dp = st.form(key='dp')
 
+    # asking for data cleaning options
     data_cleaning_ouput = form_dp.selectbox(
-        'Do you want to clean the tweets off html tags, smileys, URLs',('Yes','No'))
+        'Do you want to clean the tweets off html tags, smileys, URLs', ('Yes', 'No'))
 
+    # asking for vectorization method
     vectoriser_output = form_dp.selectbox(
-            'Which vectoriser do you want to use', ('CountVectoriser', 'TfidVectoriser'))
+            'Which vectoriser do you want to use', ('CountVectoriser', 'TfidVectoriser', 'Glove', 'word2vec', 'fattext'))
 
+    model_selection_ouput = form_dp.selectbox(
+        'Which model do you want to select ?', ('Random Forest Classifier', 'XGBClassifier', ))
+
+    estimators_input = form_dp.slider(
+        'What should be the number of trees?', min_value=100, max_value=600, step=100)
 
     data_prep_form_submit_button_output = form_dp.form_submit_button(
         "Submit for data preparations")
-
 
     if data_prep_form_submit_button_output:
         if data_cleaning_ouput == 'Yes':
             train_df = util.data_cleaning(tweets_df)
 
-
-
         # vectorisation
         if vectoriser_output == 'CountVectoriser':
-            train_df = util.clean_vectorize_using_count_vectorizer(tweets_df,'text')
+            cv = CountVectorizer()
+            train_df = util.vectorization_df(cv, train_df)
+
+        if vectoriser_output == 'TfidVectoriser':
+            tf = TfidfVectorizer()
+            train_df = util.vectorization_df(tf, train_df)
+
+        if vectoriser_output == 'Glove':
+            glove_twitter = gensim.downloader.load('glove-twitter-200')
+            train_df['tweet_vector'] = train_df['cleaned_text'].apply(
+                lambda x: util.tweet_vec(x, glove_twitter))
+            train_df.dropna(subset=['tweet_vector'], inplace=True)
+            train_df['average_vector'] = train_df['tweet_vector'].apply(
+                util.average_vec)
+
+        st.write(train_df.head(1))
+
+        if model_selection_ouput == 'Random Forest Classifier':
+            model_selection = RandomForestClassifier(
+                n_estimators=estimators_input, random_state=RANDOM_STATE, n_jobs=-1)
+        else:
+            model_selection = XGBClassifier(n_estimators=estimators_input,
+                                random_state=RANDOM_STATE, n_jobs=-1)
+
+        if vectoriser_output == 'CountVectoriser' or 'TfidVectoriser':
+            train_df["target"] = tweets_df["target"]
+            X_train, X_test, y_train, y_test = util.ttsplit(train_df)
+
+            result_dic = util.training_eval(
+                model_selection, X_train, X_test, y_train, y_test)
+
+            st.write('The f1 score is:', result_dic['f1'])
+            st.write('The precision score is:', result_dic['precision'])
+            st.write('The recall score is:', result_dic['recall'])
+            st.write('The roc auc  is:', result_dic['roc'])
 
         else:
-            train_df = util.clean_vectorize_using_tfidf_vectorizer(tweets_df,'text')
+            output_dic = util.cv_score_model(df = train_df[['target','average_vector']], model=model_selection, feature_column='average_vector')
+
+            st.write('Mean F1 score is:   ', output_dic['f1'])
+            st.write('Mean precision score is: ', output_dic['precision'])
+            st.write('Mean recall score is: ', output_dic['recall'])
+            st.write('Mean roc score is: ', output_dic['roc'])
 
 
-    # st.write(train_df.head(1))
-    # st.write(train_df.shape)
-    # st.write(train_df['target'])
+
+        st.write(train_df.head(1))
 
 
 
 
 with machine_learning:
-    st.header('Training a model to classify tweets')
+    st.header('Input a tweet which you want to classify')
 
 
 
     form_ml = st.form(key='ml')
-    #2. asking user for Model selection: (a) Random Forest
+    # 2. asking user for Model selection: (a) Random Forest
     model_selection_ouput = form_ml.selectbox(
         'Which model do you want to select ?', ('Random Forest Classifier','XGBClassifier', ))
 
@@ -126,7 +170,7 @@ with machine_learning:
                 n_estimators=estimators_input, random_state=RANDOM_STATE, n_jobs=-1)
         else:
             model = XGBClassifier(n_estimators=estimators_input,
-                                  max_depth=max_depth_input, random_state=RANDOM_STATE, n_jobs=-1)
+                                   random_state=RANDOM_STATE, n_jobs=-1)
 
 
     # splitting data
