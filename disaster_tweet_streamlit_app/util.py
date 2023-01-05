@@ -21,9 +21,8 @@ import numpy as np
 RANDOM_STATE = 1
 
 
+@st.cache
 def cv_score_model(df, model, folds=5 ,feature_column=None ,label_col_name="target"):
-
-
 
     y = df[label_col_name].values  #dataframe to numpy array
 
@@ -81,13 +80,16 @@ def cv_score_model(df, model, folds=5 ,feature_column=None ,label_col_name="targ
     # st.write(print (f"precison_mean = {np.round(np.mean(precision),3)}, recall_mean= {np.round(np.mean(recall),3)}, f1_score_mean={np.round(np.mean(f1_score_c),3)},roc_mean= {np.round(np.mean(roc_auc),3)}"))
 
 
+
+#function calculates the average of vector for a tweet,
 def average_vec(vec):
     return np.average(vec, axis=0)
 
 
+#evaluate tweets vector as per pretrained vectorizer
 def tweet_vec(tweet, pretrained_vec):
     tweet_word_vectors = []
-    if not tweet:         #if tweet is ''
+    if not tweet:         #if tweet is empty ''
         return np.nan
 
     tweet_words = tweet.split()
@@ -104,55 +106,6 @@ def tweet_vec(tweet, pretrained_vec):
     return np.array(tweet_word_vectors)
 
 
-def vectorization_df(vectorizer,df):
-
-    train_vec = vectorizer.fit_transform(df['cleaned_text'])
-    train_df_vec = pd.DataFrame(train_vec.todense(), columns = vectorizer.get_feature_names_out())
-    # print(train_counvec.shape)
-
-    return train_df_vec, vectorizer
-
-
-
-
-def clean_vectorize_using_count_vectorizer(df, text_col):
-    """Convert text column to columns of numbers.
-
-    df[text_col] =>>>>>> df [["feat1", "feat2"......]]
-
-    Args:
-        df (_type_): _description_
-        text_col (_type_): _description_
-
-    Returns:
-        _type_: _description_
-    """
-    cv = CountVectorizer()  # creating cv ,CountVectorizer object
-    cv_train = cv.fit_transform(df[text_col])
-    df = pd.DataFrame(cv_train.todense(), columns=cv.get_feature_names_out())
-
-    return df
-
-
-
-def clean_vectorize_using_tfidf_vectorizer(df, text_col):
-    """Convert text column to columns of numbers.
-
-    df[text_col] =>>>>>> df [["feat1", "feat2"......]]
-
-    Args:
-        df (_type_): _description_
-        text_col (_type_): _description_
-
-    Returns:
-        _type_: _description_
-    """
-    tf = TfidfVectorizer(tokenizer=word_tokenize)
-    tf_train = tf.fit_transform(df[text_col])
-    df = pd.DataFrame(tf_train.todense(), columns=tf.get_feature_names_out())
- # type: ignore
-
-    return df
 
 
 # HTML removal
@@ -229,8 +182,6 @@ def stemming_porter(text):
     return combined.strip()
 
  # Separating number and words together
-
-
 def separate_num_word(text):
     new_text = ''
     for i in text.split():
@@ -322,50 +273,82 @@ def words_distribution(df):
 
 
 
-def ttsplit(df, label_col_name='target', feature_column=None, test_size=0.2):
+# def ttsplit(df, label_col_name='target', feature_column=None, test_size=0.2):
 
-    y = df[label_col_name]
-    df = df.drop(label_col_name, axis=1, inplace=False)
-    assert label_col_name not in df.columns
+#     y = df[label_col_name]
+#     df = df.drop(label_col_name, axis=1, inplace=False)
+#     assert label_col_name not in df.columns
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        df, y, test_size=test_size, shuffle=True, random_state=RANDOM_STATE, stratify=y)
+#     X_train, X_test, y_train, y_test = train_test_split(
+#         df, y, test_size=test_size, shuffle=True, random_state=RANDOM_STATE, stratify=y)
 
-    if feature_column:
-        X_train = X_train[feature_column]
-        X_test = X_test[feature_column]
+#     if feature_column:
+#         X_train = X_train[feature_column]
+#         X_test = X_test[feature_column]
 
-    return X_train, X_test, y_train, y_test
+#     return X_train, X_test, y_train, y_test
 
-def train_full_dataset(model, dataset, user_input, label_col_name='target'):
-    df = dataset.drop(label_col_name, axis=1, inplace=False)
-    y = dataset[label_col_name]
+# def train_full_dataset(model, dataset, user_input, label_col_name='target'):
+#     df = dataset.drop(label_col_name, axis=1, inplace=False)
+#     y = dataset[label_col_name]
 
-    model.fit(df, y ) # fitting the entire dataset along with target labels
+#     model.fit(df, y ) # fitting the entire dataset along with target labels
+
+
+##for train test split evaluation
+# def training_eval(model, X_train, X_test, y_train, y_test):
+#     model.fit(X_train, y_train)
+#     predictions = model.predict(X_test)
+
+#     # dataframe containing just y_test and predictions
+#     output_df = pd.DataFrame({'Actual': y_test, 'Predicted': predictions})
+
+#     # miss classified data - false positives
+#     fp_df = X_test.loc[(output_df['Actual'] == 0) &
+#                        (output_df['Predicted'] == 1)]
+
+#     # miss classified data - false negatives
+#     fn_df = X_test.loc[(output_df['Actual'] == 1) &
+#                        (output_df['Predicted'] == 0)]
+
+#     output_dic = {'f1': round(f1_score(y_test, predictions), 3),
+#                   'precision': round(precision_score(y_test, predictions), 3),
+#                   'recall': round(recall_score(y_test, predictions), 3),
+#                   'roc': round(roc_auc_score(y_test, predictions),3),
+#                   'classification': classification_report(y_test, predictions, output_dict=True),}
+#                 #   'false_positves': fp_df,
+#                 #   'false_negatives': fn_df}
+
+#     return output_dic
+
+
+# #for count and tfidf vectorizers
+# def vectorization_df(vectorizer,df):
+
+#     train_vec = vectorizer.fit_transform(df['cleaned_text'])
+#     train_df_vec = pd.DataFrame(train_vec.todense(), columns = vectorizer.get_feature_names_out())
+#     # print(train_counvec.shape)
+
+#     return train_df_vec, vectorizer
 
 
 
-def training_eval(model, X_train, X_test, y_train, y_test):
-    model.fit(X_train, y_train)
-    predictions = model.predict(X_test)
 
-    # dataframe containing just y_test and predictions
-    output_df = pd.DataFrame({'Actual': y_test, 'Predicted': predictions})
+# def clean_vectorize_using_tfidf_vectorizer(df, text_col):
+#     """Convert text column to columns of numbers.
 
-    # miss classified data - false positives
-    fp_df = X_test.loc[(output_df['Actual'] == 0) &
-                       (output_df['Predicted'] == 1)]
+#     df[text_col] =>>>>>> df [["feat1", "feat2"......]]
 
-    # miss classified data - false negatives
-    fn_df = X_test.loc[(output_df['Actual'] == 1) &
-                       (output_df['Predicted'] == 0)]
+#     Args:
+#         df (_type_): _description_
+#         text_col (_type_): _description_
 
-    output_dic = {'f1': round(f1_score(y_test, predictions), 3),
-                  'precision': round(precision_score(y_test, predictions), 3),
-                  'recall': round(recall_score(y_test, predictions), 3),
-                  'roc': round(roc_auc_score(y_test, predictions),3),
-                  'classification': classification_report(y_test, predictions, output_dict=True),}
-                #   'false_positves': fp_df,
-                #   'false_negatives': fn_df}
+#     Returns:
+#         _type_: _description_
+#     """
+#     tf = TfidfVectorizer(tokenizer=word_tokenize)
+#     tf_train = tf.fit_transform(df[text_col])
+#     df = pd.DataFrame(tf_train.todense(), columns=tf.get_feature_names_out())
+#  # type: ignore
 
-    return output_dic
+#     return df

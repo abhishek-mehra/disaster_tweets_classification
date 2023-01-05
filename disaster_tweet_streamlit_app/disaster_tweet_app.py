@@ -1,5 +1,3 @@
-from statistics import mode
-from matplotlib.style import use
 from sklearn.ensemble import RandomForestClassifier
 import streamlit as st
 import pandas as pd
@@ -9,14 +7,13 @@ from xgboost import XGBClassifier
 import os
 import gensim
 import gensim.downloader
-
 import util
 import joblib
 
 eda = st.container()
 data_prep_machine_learning = st.container()
 user_input = st.container()
-metrics = st.container()
+
 
 RANDOM_STATE = 1
 
@@ -73,13 +70,19 @@ with data_prep_machine_learning:
 
     # asking for vectorization method
     vectoriser_output = form_dp.selectbox(
-        'Which vectoriser do you want to use', ('CountVectoriser', 'TfidVectoriser', 'Glove', 'Word2vec', 'FastText'))
+        'Which vectoriser do you want to use', ('Glove', 'Word2vec', 'FastText'))
 
+    # asking user for model selectiom
     model_selection_ouput = form_dp.selectbox(
         'Which model do you want to select ?', ('Random Forest Classifier', 'XGBClassifier', ))
 
+    # asking user for number of estimators
     estimators_input = form_dp.slider(
         'What should be the number of trees?', min_value=100, max_value=600, step=100)
+
+    # #asking user for number of folds
+    number_of_folds_input = form_dp.slider(
+        'How many folds in Cross Validation?', min_value=2, max_value=10, step=1)
 
     data_prep_form_submit_button_output = form_dp.form_submit_button(
         "Submit for data preparations")
@@ -89,25 +92,30 @@ with data_prep_machine_learning:
             train_df = util.data_cleaning(tweets_df)
 
         # vectorisation
-        if vectoriser_output == 'CountVectoriser':
-            cv = CountVectorizer()
-            train_df, vectorizer = util.vectorization_df(cv, train_df)
+        # if vectoriser_output == 'CountVectoriser':
+        #     cv = CountVectorizer()
+        #     train_df, vectorizer = util.vectorization_df(cv, train_df)
 
-        if vectoriser_output == 'TfidVectoriser':
-            tf = TfidfVectorizer()
-            train_df, vectorizer = util.vectorization_df(tf, train_df)
+        # if vectoriser_output == 'TfidVectoriser':
+        #     tf = TfidfVectorizer()
+        #     train_df, vectorizer = util.vectorization_df(tf, train_df)
 
         if vectoriser_output == 'Glove':
+            # initializing glove vectorizer
             vectorizer = gensim.downloader.load('glove-twitter-200')
+
+            # storing vector of tweet in tweet vector
             train_df['tweet_vector'] = train_df['cleaned_text'].apply(
                 lambda x: util.tweet_vec(x, vectorizer))
 
-
+            # dropping na values produced after vectorisation in tweet_vector column
             train_df.dropna(subset=['tweet_vector'], inplace=True)
+
+            # taking average of the vectors in a tweet.example: if a tweet has 3 words,
+            #  there will be 3 vectors of 200 dimensions each
+            # i will take average of all the vectors to get one vector of 200 dimensions
             train_df['average_vector'] = train_df['tweet_vector'].apply(
                 util.average_vec)
-
-
 
         if vectoriser_output == 'Word2vec':
             vectorizer = gensim.downloader.load('word2vec-google-news-300')
@@ -117,8 +125,6 @@ with data_prep_machine_learning:
             train_df['average_vector'] = train_df['tweet_vector'].apply(
                 util.average_vec)
 
-
-
         if vectoriser_output == 'FastText':
             vectorizer = gensim.downloader.load('word2vec-google-news-300')
             train_df['tweet_vector'] = train_df['cleaned_text'].apply(
@@ -127,8 +133,6 @@ with data_prep_machine_learning:
             train_df['average_vector'] = train_df['tweet_vector'].apply(
                 util.average_vec)
 
-
-
         if model_selection_ouput == 'Random Forest Classifier':
             model_selection = RandomForestClassifier(
                 n_estimators=estimators_input, random_state=RANDOM_STATE, n_jobs=-1)
@@ -136,98 +140,104 @@ with data_prep_machine_learning:
             model_selection = XGBClassifier(n_estimators=estimators_input,
                                             random_state=RANDOM_STATE, n_jobs=-1)
 
-        #for tfidf and count vectorizers,
-        if (vectoriser_output == 'TfidVectoriser' or vectoriser_output == 'CountVectoriser'):
-            st.write(train_df.head(1))
+        # #for tfidf and count vectorizers, the training, predicting procedure
+        # if (vectoriser_output == 'TfidVectoriser' or vectoriser_output == 'CountVectoriser'):
+        #     st.write(train_df.head(1))
 
+        #     #training the model on whole dataset, to save the model for user input predictions
+        #     fitted_model_to_save = model_selection.fit(train_df, tweets_df['target'] )
 
-            #training the model on whole dataset, to save the model for user input predictions
-            fitted_model_to_save = model_selection.fit(train_df, tweets_df['target'] )
+        #     #adding the label class since it is required by my function
+        #     train_df["target"] = tweets_df["target"]
+        #     X_train, X_test, y_train, y_test = util.ttsplit(train_df)
 
+        #     result_dic = util.training_eval(
+        #         model_selection, X_train, X_test, y_train, y_test)
 
-            train_df["target"] = tweets_df["target"]
-            X_train, X_test, y_train, y_test = util.ttsplit(train_df)
-
-            result_dic = util.training_eval(
-                model_selection, X_train, X_test, y_train, y_test)
-
-            st.write('The f1 score is:', result_dic['f1'])
-            st.write('The precision score is:', result_dic['precision'])
-            st.write('The recall score is:', result_dic['recall'])
-            st.write('The roc auc  is:', result_dic['roc'])
-
-
+        #     st.write('The f1 score is:', result_dic['f1'])
+        #     st.write('The precision score is:', result_dic['precision'])
+        #     st.write('The recall score is:', result_dic['recall'])
+        #     st.write('The roc auc  is:', result_dic['roc'])
 
         # for pretrained vectorizers, cross validation,
 
-
-        #taining on whole dataset to save for user input use
-
-
-
         if (vectoriser_output == 'Glove' or vectoriser_output == 'Word2vec' or vectoriser_output == 'FastText'):
+
+            # stacking the average vectors in array[[]] format, else  format was arr[arr[],arr[],arr[]],
+            #  stacking the whole dataset, so that whole dataset can be trained .
 
             train_set = np.vstack(train_df['average_vector'])
 
-            fitted_model_to_save = model_selection.fit(train_set, train_df['target'])
+            # training the model on whole dataset, to save the model for later use
+            fitted_model_to_save = model_selection.fit(
+                train_set, train_df['target'])
 
             st.write(train_df.head(1))
             output_dic = util.cv_score_model(df=train_df[[
-                                             'target', 'average_vector']], model=model_selection, feature_column='average_vector')
+                                             'target', 'average_vector']], folds = number_of_folds_input,
+                                             model=model_selection, feature_column='average_vector')
 
             st.write('Mean F1 score is:   ', output_dic['f1'])
             st.write('Mean precision score is: ', output_dic['precision'])
             st.write('Mean recall score is: ', output_dic['recall'])
             st.write('Mean roc score is: ', output_dic['roc'])
 
+        # saving current direction in current_dir
         current_dir = os.path.dirname(__file__)
-        saved_model = os.path.join(current_dir, '.', 'saved_model')
-        joblib.dump(fitted_model_to_save, saved_model)
 
+        # making a path way for the model to be saved
+        saved_model = os.path.join(current_dir, '.', 'saved_model')
+        # saving the trained model
+        joblib.dump(fitted_model_to_save, saved_model)
+        # saving the pretrained vectorizer
         saved_vectorizer = os.path.join(current_dir, '.', 'saved_vectorizer')
         joblib.dump(vectorizer, saved_vectorizer)
 
-
         # st.write(train_df.head(1))
-        # 4 asking user for cv folds
-        # n_folds = form_ml.slider('How many CV folds?',
-        #  min_value=5, max_value=10, step=1)
+
 
 
 with user_input:
+
     st.header('Classifying your tweet input ')
 
+    # initializing a form to input user input
     input_form = st.form(key='user')
 
-    user_input_tweet = input_form.text_input('Enter a tweet to check if it is a disaster related tweet or not')
+    user_input_tweet = input_form.text_input(
+        'Enter a tweet to check if it is a disaster related tweet or not')
     st.write('Your input:', user_input_tweet)
 
-    user_form_submit_button = input_form.form_submit_button('Submit for  input')
+    # when user presses the submit button, it will be stored in this
+    user_form_submit_button = input_form.form_submit_button(
+        'Submit your input')
 
+    # after user presses the submit button this  then the following steps will execute
     if user_form_submit_button:
-        # cleaning text
+        # cleaning user input text
         cleaned_text = util.user_input_data_cleaning(user_input_tweet)
 
-
-
+        # setting current directory
         current_dir = os.path.dirname(__file__)
         saved_model = os.path.join(current_dir, '.', 'saved_model')
+
+        # loading the saved model from the disk
         model_load = joblib.load(saved_model)
 
-        #loading saved vectorizer from disk
+        # loading saved vectorizer from disk
         saved_vectorizer = os.path.join(current_dir, '.', 'saved_vectorizer')
         vectorizer_load = joblib.load(saved_vectorizer)
 
         #count and tfidf
         # output = vectorizer_load.transform([cleaned_text])
 
-
-        #pre trained vectorizer
+        # pre trained vectorizer
         vectorized_input_tweet = util.tweet_vec(cleaned_text, vectorizer_load)
 
-        vectorized_input_tweet_average = util.average_vec(vectorized_input_tweet)
-        vectorized_input_tweet_average = np.reshape(vectorized_input_tweet_average, (1,-1))
-
+        vectorized_input_tweet_average = util.average_vec(
+            vectorized_input_tweet)
+        vectorized_input_tweet_average = np.reshape(
+            vectorized_input_tweet_average, (1, -1))
 
         pred = model_load.predict(vectorized_input_tweet_average)
         if (pred == 0):
