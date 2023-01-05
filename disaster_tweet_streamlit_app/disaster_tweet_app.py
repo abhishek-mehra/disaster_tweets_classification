@@ -181,10 +181,10 @@ with data_prep_machine_learning:
             st.write('Mean roc score is: ', output_dic['roc'])
 
         current_dir = os.path.dirname(__file__)
-        saved_model = os.path.join(current_dir, '.', 'saved_data/saved_model')
+        saved_model = os.path.join(current_dir, '.', 'saved_model')
         joblib.dump(fitted_model_to_save, saved_model)
 
-        saved_vectorizer = os.path.join(current_dir, '.', 'saved_data/saved_vectorizer')
+        saved_vectorizer = os.path.join(current_dir, '.', 'saved_vectorizer')
         joblib.dump(vectorizer, saved_vectorizer)
 
 
@@ -211,11 +211,11 @@ with user_input:
 
 
         current_dir = os.path.dirname(__file__)
-        saved_model = os.path.join(current_dir, '.', 'saved_data/saved_model')
+        saved_model = os.path.join(current_dir, '.', 'saved_model')
         model_load = joblib.load(saved_model)
 
         #loading saved vectorizer from disk
-        saved_vectorizer = os.path.join(current_dir, '.', 'saved_data/saved_vectorizer')
+        saved_vectorizer = os.path.join(current_dir, '.', 'saved_vectorizer')
         vectorizer_load = joblib.load(saved_vectorizer)
 
         #count and tfidf
