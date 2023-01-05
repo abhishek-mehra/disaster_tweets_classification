@@ -74,8 +74,7 @@ def cv_score_model(df, model, folds=5 ,feature_column=None ,label_col_name="targ
     output_dictionary = {'f1': np.round(np.mean(f1_score_c),3),
                          'precision': np.round(np.mean(precision),3),
                          'recall': np.round(np.mean(recall),3),
-                         'roc':np.round(np.mean(roc_auc),3)
-                         }
+                         'roc':np.round(np.mean(roc_auc),3)}
 
 
     return output_dictionary
@@ -107,11 +106,11 @@ def tweet_vec(tweet, pretrained_vec):
 
 def vectorization_df(vectorizer,df):
 
-    train_counvec = vectorizer.fit_transform(df['cleaned_text'])
-    train_df_vec = pd.DataFrame(train_counvec.todense(), columns = vectorizer.get_feature_names_out())
-    print(train_counvec.shape)
+    train_vec = vectorizer.fit_transform(df['cleaned_text'])
+    train_df_vec = pd.DataFrame(train_vec.todense(), columns = vectorizer.get_feature_names_out())
+    # print(train_counvec.shape)
 
-    return train_df_vec
+    return train_df_vec, vectorizer
 
 
 
@@ -151,6 +150,8 @@ def clean_vectorize_using_tfidf_vectorizer(df, text_col):
     tf = TfidfVectorizer(tokenizer=word_tokenize)
     tf_train = tf.fit_transform(df[text_col])
     df = pd.DataFrame(tf_train.todense(), columns=tf.get_feature_names_out())
+ # type: ignore
+
     return df
 
 
@@ -272,6 +273,21 @@ def data_cleaning(df):
     return df2
 
 
+def user_input_data_cleaning(text):
+    cleaned_text = remove_stopwords(text)
+    cleaned_text = remove_url(cleaned_text)
+    cleaned_text = remove_punct(cleaned_text)
+    cleaned_text = separate_num_word(cleaned_text)
+
+    cleaned_text = replace_number_with_tag(cleaned_text)
+    cleaned_text = lemmatization(cleaned_text)
+
+
+    return cleaned_text
+
+
+
+
 def location_occurence(df):
     top_10 = df['location'].value_counts()[:10]
     fig = plt.figure(figsize=(10, 4))
@@ -348,8 +364,8 @@ def training_eval(model, X_train, X_test, y_train, y_test):
                   'precision': round(precision_score(y_test, predictions), 3),
                   'recall': round(recall_score(y_test, predictions), 3),
                   'roc': round(roc_auc_score(y_test, predictions),3),
-                  'classification': classification_report(y_test, predictions, output_dict=True),
-                  'false_positves': fp_df,
-                  'false_negatives': fn_df}
+                  'classification': classification_report(y_test, predictions, output_dict=True),}
+                #   'false_positves': fp_df,
+                #   'false_negatives': fn_df}
 
     return output_dic
