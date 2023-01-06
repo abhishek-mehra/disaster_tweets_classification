@@ -10,11 +10,15 @@ import gensim.downloader
 import util
 import joblib
 
+if 'vectorizer_glove' not in st.session_state:
+    st.session_state['vectorizer_glove'] = gensim.downloader.load('glove-twitter-200')
+    st.write("vectorizer_glove downloaded....")
+
 eda = st.container()
 data_prep_machine_learning = st.container()
 user_input = st.container()
 
-
+#setting random state to 1
 RANDOM_STATE = 1
 
 train_df = pd.DataFrame()
@@ -102,7 +106,8 @@ with data_prep_machine_learning:
 
         if vectoriser_output == 'Glove':
             # initializing glove vectorizer
-            vectorizer = gensim.downloader.load('glove-twitter-200')
+            vectorizer = st.session_state['vectorizer_glove']
+            # vectorizer = gensim.downloader.load('glove-twitter-200')
 
             # storing vector of tweet in tweet vector
             train_df['tweet_vector'] = train_df['cleaned_text'].apply(
@@ -118,6 +123,8 @@ with data_prep_machine_learning:
                 util.average_vec)
 
         if vectoriser_output == 'Word2vec':
+
+
             vectorizer = gensim.downloader.load('word2vec-google-news-300')
             train_df['tweet_vector'] = train_df['cleaned_text'].apply(
                 lambda x: util.tweet_vec(x, vectorizer))
@@ -185,12 +192,14 @@ with data_prep_machine_learning:
         # saving current direction in current_dir
         current_dir = os.path.dirname(__file__)
 
-        # making a path way for the model to be saved
-        saved_model = os.path.join(current_dir, '.', 'saved_model')
+        # making a path way for the model to be saved, this folder is git -ignored ,
+        #  since i dont want it to be pushed to github everytime
+        #
+        saved_model = os.path.join(current_dir, '.', 'saved_data/saved_model')
         # saving the trained model
         joblib.dump(fitted_model_to_save, saved_model)
         # saving the pretrained vectorizer
-        saved_vectorizer = os.path.join(current_dir, '.', 'saved_vectorizer')
+        saved_vectorizer = os.path.join(current_dir, '.', 'saved_data/saved_vectorizer')
         joblib.dump(vectorizer, saved_vectorizer)
 
         # st.write(train_df.head(1))
@@ -219,13 +228,13 @@ with user_input:
 
         # setting current directory
         current_dir = os.path.dirname(__file__)
-        saved_model = os.path.join(current_dir, '.', 'saved_model')
+        saved_model = os.path.join(current_dir, '.', 'saved_data/saved_model')
 
         # loading the saved model from the disk
         model_load = joblib.load(saved_model)
 
         # loading saved vectorizer from disk
-        saved_vectorizer = os.path.join(current_dir, '.', 'saved_vectorizer')
+        saved_vectorizer = os.path.join(current_dir, '.', 'saved_data/saved_vectorizer')
         vectorizer_load = joblib.load(saved_vectorizer)
 
         #count and tfidf

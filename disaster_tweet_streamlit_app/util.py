@@ -86,7 +86,7 @@ def average_vec(vec):
     return np.average(vec, axis=0)
 
 
-#evaluate tweets vector as per pretrained vectorizer
+# tweets vector as per pretrained vectorizer
 def tweet_vec(tweet, pretrained_vec):
     tweet_word_vectors = []
     if not tweet:         #if tweet is empty ''

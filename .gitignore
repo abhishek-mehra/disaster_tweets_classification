@@ -2,3 +2,4 @@
 jupyter/practice_notebooks
 **/*.ini
 __pycache__
+disaster_tweet_streamlit_app/saved_data
