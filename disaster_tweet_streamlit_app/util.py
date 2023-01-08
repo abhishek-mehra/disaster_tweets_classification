@@ -17,6 +17,7 @@ nltk.download('wordnet')
 nltk.download('omw-1.4')
 nltk.download('words')
 import numpy as np
+import pickle
 
 RANDOM_STATE = 1
 
@@ -273,26 +274,26 @@ def words_distribution(df):
 
 
 
-# def ttsplit(df, label_col_name='target', feature_column=None, test_size=0.2):
+def ttsplit(df, label_col_name='target', feature_column=None, test_size=0.2):
 
-#     y = df[label_col_name]
-#     df = df.drop(label_col_name, axis=1, inplace=False)
-#     assert label_col_name not in df.columns
+    y = df[label_col_name]
+    df = df.drop(label_col_name, axis=1, inplace=False)
+    assert label_col_name not in df.columns
 
-#     X_train, X_test, y_train, y_test = train_test_split(
-#         df, y, test_size=test_size, shuffle=True, random_state=RANDOM_STATE, stratify=y)
+    X_train, X_test, y_train, y_test = train_test_split(
+        df, y, test_size=test_size, shuffle=True, random_state=RANDOM_STATE, stratify=y)
 
-#     if feature_column:
-#         X_train = X_train[feature_column]
-#         X_test = X_test[feature_column]
+    if feature_column:
+        X_train = X_train[feature_column]
+        X_test = X_test[feature_column]
 
-#     return X_train, X_test, y_train, y_test
+    return X_train, X_test, y_train, y_test
 
-# def train_full_dataset(model, dataset, user_input, label_col_name='target'):
-#     df = dataset.drop(label_col_name, axis=1, inplace=False)
-#     y = dataset[label_col_name]
+def train_full_dataset(model, dataset, user_input, label_col_name='target'):
+    df = dataset.drop(label_col_name, axis=1, inplace=False)
+    y = dataset[label_col_name]
 
-#     model.fit(df, y ) # fitting the entire dataset along with target labels
+    model.fit(df, y ) # fitting the entire dataset along with target labels
 
 
 ##for train test split evaluation
@@ -322,15 +323,20 @@ def words_distribution(df):
 #     return output_dic
 
 
-# #for count and tfidf vectorizers
-# def vectorization_df(vectorizer,df):
+#for count and tfidf vectorizers
+def vectorization_df(vectorizer,df):
 
-#     train_vec = vectorizer.fit_transform(df['cleaned_text'])
-#     train_df_vec = pd.DataFrame(train_vec.todense(), columns = vectorizer.get_feature_names_out())
-#     # print(train_counvec.shape)
+    train_vec = vectorizer.transform(df['cleaned_text'])
+    train_df_vec = pd.DataFrame(train_vec.todense(), columns = vectorizer.get_feature_names_out())
+    # print(train_counvec.shape)
 
-#     return train_df_vec, vectorizer
+    return train_df_vec
 
+def load_pickle(file):
+    pickd = open(file, 'rb')
+    data = pickle.load(pickd)
+    pickd.close()
+    return data
 
 
 
