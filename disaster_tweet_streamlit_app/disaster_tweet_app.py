@@ -105,19 +105,24 @@ with data_prep_machine_learning:
         if vectoriser_output == 'CountVectoriser':
             path_count_vec=os.path.join(
                 current_dir, "..", "model/count_vectorizer/count_vectorizer.pickle")
-            count_vectorizer=util.load_pickle(path_count_vec)
+            vectorizer=util.load_pickle(path_count_vec)
 
             #train df just contains the count vectorised features
-            train_df=util.vectorization_df(count_vectorizer, train_df)
+            train_df=util.vectorization_df(vectorizer, train_df)
+
+
+
 
         if vectoriser_output == 'TfidVectoriser':
             path_tfidf_vec=os.path.join(
                 current_dir, "..", "model/Tfidf_vectorizer/tfidf_vectorizer.pickle")
-            tfidf_vectorizer = util.load_pickle(path_tfidf_vec)
+            vectorizer = util.load_pickle(path_tfidf_vec)
 
-            train_df=util.vectorization_df(tfidf_vectorizer, train_df)
+            train_df=util.vectorization_df(vectorizer, train_df)
 
-            st.write('tfid vectorisation done')
+
+
+
 
         if vectoriser_output == 'glove_gigaword_300':
             # initializing glove vectorizer from the storage, which i have saved
@@ -139,6 +144,13 @@ with data_prep_machine_learning:
             train_df['average_vector'] = train_df['tweet_vector'].apply(
                 util.average_vec)
 
+
+
+            if 'vectorizer' not in st.session_state:
+                st.session_state['vectorizer'] = vectorizer
+
+
+
         if vectoriser_output == 'glove_twitter_50':
 
 
@@ -156,25 +168,100 @@ with data_prep_machine_learning:
                 util.average_vec)
 
 
-
-        # if vectoriser_output == 'fastetext':
-
-        #     # vectorizer = gensim.downloader.load('word2vec-google-news-300')
-        #     fasttext_path = os.path.join(current_dir, "..", "model/fasttext/fasttext")
-        #     vectorizer = loaded = KeyedVectors.load(fasttext_path)
-
-        #     train_df['tweet_vector'] = train_df['cleaned_text'].apply(
-        #         lambda x: util.tweet_vec(x, vectorizer))
-        #     train_df.dropna(subset=['tweet_vector'], inplace=True)
-        #     train_df['average_vector'] = train_df['tweet_vector'].apply(
-        #         util.average_vec)
-
         if model_selection_ouput == 'Random Forest Classifier':
             model_selection=RandomForestClassifier(
                 n_estimators = estimators_input, random_state = RANDOM_STATE, n_jobs = -1)
         else:
             model_selection=XGBClassifier(n_estimators = estimators_input,
                                             random_state = RANDOM_STATE, n_jobs = -1)
+
+
+        # for pretrained vectorizers, cross validation,
+
+        if (vectoriser_output == 'glove_gigaword_300' or vectoriser_output == 'glove_twitter_50'):
+
+            st.write(train_df.head(1))
+            output_dic=util.cv_score_model(df = train_df[[
+                                                'target', 'average_vector']], folds = number_of_folds_input,
+                                                model = model_selection, feature_column = 'average_vector')
+
+            st.write('Mean F1 score is:   ', output_dic['f1'])
+            st.write('Mean precision score is: ', output_dic['precision'])
+            st.write('Mean recall score is: ', output_dic['recall'])
+            st.write('Mean roc score is: ', output_dic['roc'])
+
+            #storing the vectorizer in session state to be used for user input classification
+            if 'vectorizer' not in st.session_state:
+                st.session_state['vectorizer'] = vectorizer
+
+            if 'option' not in st.session_state:
+                st.session_state['option'] = 0
+
+
+
+            # stacking the average vectors in array[[]] format, else  format was arr[arr[],arr[],arr[]],
+            #  stacking the whole dataset, so that whole dataset can be trained .
+
+            train_set=np.vstack(train_df['average_vector'])
+
+            # training the model on whole dataset, to save the model for later use
+            fitted_model=model_selection.fit(
+            train_set, train_df['target'])
+
+            if 'clf_model' not in st.session_state:
+                st.session_state['clf_model'] = fitted_model
+
+            st.session_state['vectorizer'] = vectorizer
+            st.session_state['clf_model'] = fitted_model
+            st.session_state['option'] = 0
+
+        if (vectoriser_output == 'CountVectoriser' or vectoriser_output == 'TfidVectoriser'):
+
+            st.write("cv time")
+
+            train_df['target'] = tweets_df['target']
+            output_dic = util.cv_score_model( model = model_selection , df = train_df,
+             folds = number_of_folds_input)
+
+            st.write('Mean F1 score is:   ', output_dic['f1'])
+            st.write('Mean precision score is: ', output_dic['precision'])
+            st.write('Mean recall score is: ', output_dic['recall'])
+            st.write('Mean roc score is: ', output_dic['roc'])
+
+            #storing the vectorizer in session state to be used for user input classification
+            if 'vectorizer' not in st.session_state:
+                st.session_state['vectorizer'] = vectorizer
+                st.write('vectorizer stored')
+
+            if 'option' not in st.session_state:
+                st.session_state['option'] = 1
+
+
+            fitted_model = model_selection.fit(train_df.drop('target',axis=1),train_df['target'])
+
+            if 'clf_model' not in st.session_state:
+                st.session_state['clf_model'] = fitted_model
+
+
+            st.session_state['vectorizer'] = vectorizer
+            st.session_state['option'] = 1
+            st.session_state['clf_model'] = fitted_model
+
+
+
+        # # saving current direction in current_dir
+        # current_dir = os.path.dirname(__file__)
+
+        # # making a path way for the model to be saved, this folder is git -ignored ,
+        # #  since i dont want it to be pushed to github everytime
+        # #
+        # saved_model = os.path.join(current_dir, '.', 'saved_data/saved_model')
+        # # saving the trained model
+        # joblib.dump(fitted_model_to_save, saved_model)
+        # # saving the pretrained vectorizer
+        # saved_vectorizer = os.path.join(current_dir, '.', 'saved_data/saved_vectorizer')
+        # joblib.dump(vectorizer, saved_vectorizer)
+
 
         # for tfidf and count vectorizers, the training, predicting procedure
         # if (vectoriser_output == 'TfidVectoriser' or vectoriser_output == 'CountVectoriser'):
@@ -196,64 +283,13 @@ with data_prep_machine_learning:
         #     st.write('The recall score is:', result_dic['recall'])
         #     st.write('The roc auc  is:', result_dic['roc'])
 
-        # for pretrained vectorizers, cross validation,
-
-        if (vectoriser_output == 'glove_gigaword_300' or vectoriser_output == 'glove_twitter_50'):
-
-            st.write(train_df.head(1))
-            output_dic=util.cv_score_model(df = train_df[[
-                                                'target', 'average_vector']], folds = number_of_folds_input,
-                                                model = model_selection, feature_column = 'average_vector')
-
-            st.write('Mean F1 score is:   ', output_dic['f1'])
-            st.write('Mean precision score is: ', output_dic['precision'])
-            st.write('Mean recall score is: ', output_dic['recall'])
-            st.write('Mean roc score is: ', output_dic['roc'])
-
-
-             # stacking the average vectors in array[[]] format, else  format was arr[arr[],arr[],arr[]],
-        #  stacking the whole dataset, so that whole dataset can be trained .
-
-            train_set=np.vstack(train_df['average_vector'])
-
-        if (vectoriser_output == 'CountVectoriser' or vectoriser_output == 'TfidVectoriser'):
-
-            st.write("cv time")
-
-            train_df['target'] = tweets_df['target']
-            output_dic = util.cv_score_model( model = model_selection , df = train_df,
-             folds = number_of_folds_input)
-
-            st.write('Mean F1 score is:   ', output_dic['f1'])
-            st.write('Mean precision score is: ', output_dic['precision'])
-            st.write('Mean recall score is: ', output_dic['recall'])
-            st.write('Mean roc score is: ', output_dic['roc'])
-
-
-
-        # training the model on whole dataset, to save the model for later use
-            # fitted_model=model_selection.fit(
-            # train_set, train_df['target'])
-
-        # # saving current direction in current_dir
-        # current_dir = os.path.dirname(__file__)
-
-        # # making a path way for the model to be saved, this folder is git -ignored ,
-        # #  since i dont want it to be pushed to github everytime
-        # #
-        # saved_model = os.path.join(current_dir, '.', 'saved_data/saved_model')
-        # # saving the trained model
-        # joblib.dump(fitted_model_to_save, saved_model)
-        # # saving the pretrained vectorizer
-        # saved_vectorizer = os.path.join(current_dir, '.', 'saved_data/saved_vectorizer')
-        # joblib.dump(vectorizer, saved_vectorizer)
-
 
 
 
 with user_input:
 
     st.header('Classifying your tweet input ')
+
 
     # initializing a form to input user input
     input_form=st.form(key = 'user')
@@ -268,34 +304,60 @@ with user_input:
 
     # after user presses the submit button this  then the following steps will execute
     if user_form_submit_button:
-        # cleaning user input text
-        cleaned_text=util.user_input_data_cleaning(user_input_tweet)
 
-        # setting current directory
-        current_dir=os.path.dirname(__file__)
-        saved_model=os.path.join(current_dir, '.', 'saved_data/saved_model')
+        st.write(st.session_state['option'])
 
-        # loading the saved model from the disk
-        model_load=joblib.load(saved_model)
+        if user_input_tweet == '' or user_input_tweet.isdigit():
+            st.write('Give proper tweet')
 
-        # loading saved vectorizer from disk
-        saved_vectorizer=os.path.join(
-            current_dir, '.', 'saved_data/saved_vectorizer')
-        vectorizer_load=joblib.load(saved_vectorizer)
 
-        # count and tfidf
-        # output = vectorizer_load.transform([cleaned_text])
-
-        # pre trained vectorizer
-        vectorized_input_tweet=util.tweet_vec(cleaned_text, vectorizer_load)
-
-        vectorized_input_tweet_average=util.average_vec(
-            vectorized_input_tweet)
-        vectorized_input_tweet_average=np.reshape(
-            vectorized_input_tweet_average, (1, -1))
-
-        pred=model_load.predict(vectorized_input_tweet_average)
-        if (pred == 0):
-            st.write('Output: It is not a disaster related tweet')
         else:
-            st.write('Output: It is a disaster related tweet')
+
+            # cleaning user input text
+            cleaned_text=util.user_input_data_cleaning(user_input_tweet)
+
+
+            if st.session_state['option'] == 1:
+            # count and tfidf
+                st.write('count vec')
+                vectorizer = st.session_state['vectorizer']
+                output = vectorizer.transform([cleaned_text])
+                user_input = pd.DataFrame(output.todense(), columns = vectorizer.get_feature_names_out())
+                st.write('')
+                pred = st.session_state['clf_model'].predict(user_input)
+                st.write('done')
+
+
+            # pre trained vectorizer
+            if st.session_state['option'] == 0:
+                st.write('pre vec')
+                vectorizer = st.session_state['vectorizer']
+
+                vectorized_input_tweet=util.tweet_vec(cleaned_text, vectorizer)
+
+                vectorized_input_tweet_average=util.average_vec(
+                    vectorized_input_tweet)
+                vectorized_input_tweet_average=np.reshape(
+                    vectorized_input_tweet_average, (1, -1))
+
+                pred=st.session_state['clf_model'].predict(vectorized_input_tweet_average)
+
+
+
+            if (pred == 0):
+                st.write('Output: It is not a disaster related tweet')
+            else:
+                st.write('Output: It is a disaster related tweet')
+
+
+ # # setting current directory
+        # current_dir=os.path.dirname(__file__)
+        # saved_model=os.path.join(current_dir, '.', 'saved_data/saved_model')
+
+        # # loading the saved model from the disk
+        # model_load=joblib.load(saved_model)
+
+        # # loading saved vectorizer from disk
+        # saved_vectorizer=os.path.join(
+        #     current_dir, '.', 'saved_data/saved_vectorizer')
+        # vectorizer_load=joblib.load(saved_vectorizer)
