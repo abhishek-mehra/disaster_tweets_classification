@@ -16,6 +16,7 @@ matplotlib =  "^3.6.2"
 regex = "^2022.10.31"
 nltk = "^3.8"
 joblib = "^1.2.0"
+sentence-transformers = "^2.2.2"
 
 [tool.poetry.group.dev.dependencies]
 streamlit = "^1.16.0"

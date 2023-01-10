@@ -1,3 +1,4 @@
+from imp import load_compiled
 from sklearn.ensemble import RandomForestClassifier
 import streamlit as st
 import pandas as pd
@@ -8,8 +9,9 @@ import os
 import gensim
 import gensim.downloader
 import util
-import joblib
+from sentence_transformers import SentenceTransformer
 from gensim.models import KeyedVectors
+
 
 current_dir = os.path.dirname(__file__)
 
@@ -26,6 +28,16 @@ user_input = st.container()
 
 # setting random state to 1
 RANDOM_STATE = 1
+
+#initializing sessions
+if 'clf_model' not in st.session_state:
+    st.session_state['clf_model'] = 'fitted_model'
+
+if 'option' not in st.session_state:
+    st.session_state['option'] = 'countfid'
+
+if 'vectorizer' not in st.session_state:
+    st.session_state['vectorizer'] = 'vectorizer'
 
 train_df = pd.DataFrame()
 
@@ -80,7 +92,7 @@ with data_prep_machine_learning:
 
     # asking for vectorization method
     vectoriser_output = form_dp.selectbox('Which vectoriser do you want to use',
-    ('glove_gigaword_300', 'glove_twitter_50', 'TfidVectoriser', 'CountVectoriser'))
+    ('glove_gigaword_100', 'glove_twitter_50', 'TfidVectoriser', 'CountVectoriser','distilroberta_v1'))
 
     # asking user for model selectiom
     model_selection_ouput=form_dp.selectbox(
@@ -100,6 +112,14 @@ with data_prep_machine_learning:
     if data_prep_form_submit_button_output:
         if data_cleaning_ouput == 'Yes':
             train_df=util.data_cleaning(tweets_df)
+
+
+        if data_cleaning_ouput == 'No':
+            train_df= tweets_df.rename(columns={'text':'cleaned_text'})
+
+
+
+
 
         # vectorisation
         if vectoriser_output == 'CountVectoriser':
@@ -121,17 +141,33 @@ with data_prep_machine_learning:
             train_df=util.vectorization_df(vectorizer, train_df)
 
 
+        if vectoriser_output == 'distilroberta_v1':
+
+            bert_path = os.path.join(current_dir, '..', 'model/distilroberta_v1')
+            vectorizer = SentenceTransformer(bert_path)
+            st.write('bert loaded')
+
+            # either vectorise the dataset
+            # distil_vectors = vectorizer.encode(train_df['cleaned_text'])
+            # train_df['final_vector']  = pd.Series(list(distil_vectors))
+
+            #load a pre vectorized dataset
+            path_vectorized_df = os.path.join(current_dir, '..', 'model/distilroberta_v1/bert_vectorized_state.pickle')
+            train_df = util.load_pickle(path_vectorized_df)
 
 
 
-        if vectoriser_output == 'glove_gigaword_300':
+
+
+        if vectoriser_output == 'glove_gigaword_100':
             # initializing glove vectorizer from the storage, which i have saved
             glove_wiki=os.path.join(
-                current_dir, "..", "model/glove_gigaword_300/glove_wiki_gigaword_300.model")
+                current_dir, "..", "model/glove_gigaword_100/glove_wiki_gigaword_100.model")
             vectorizer=loaded=KeyedVectors.load(glove_wiki)
             # vectorizer = gensim.downloader.load('glove-twitter-200')
 
             # storing vector of tweet in tweet vector
+
             train_df['tweet_vector']=train_df['cleaned_text'].apply(
                 lambda x: util.tweet_vec(x, vectorizer))
 
@@ -141,20 +177,18 @@ with data_prep_machine_learning:
             # taking average of the vectors in a tweet.example: if a tweet has 3 words,
             #  there will be 3 vectors of 200 dimensions each
             # i will take average of all the vectors to get one vector of 200 dimensions
-            train_df['average_vector'] = train_df['tweet_vector'].apply(
+            train_df['final_vector'] = train_df['tweet_vector'].apply(
                 util.average_vec)
 
 
 
-            if 'vectorizer' not in st.session_state:
-                st.session_state['vectorizer'] = vectorizer
 
 
 
         if vectoriser_output == 'glove_twitter_50':
 
 
-            # vectorizer = gensim.downloader.load('word2vec-google-news-300')
+            # vectorizer = gensim.downloader.load('word2vec-google-news-100')
             glove_twitter_50_path=os.path.join(
                 current_dir, "..", "model/glove_twitter_50/glove-twitter-50.model")
             vectorizer=loaded=KeyedVectors.load(glove_twitter_50_path)
@@ -164,8 +198,12 @@ with data_prep_machine_learning:
             train_df['tweet_vector']=train_df['cleaned_text'].apply(
                 lambda x: util.tweet_vec(x, vectorizer))
             train_df.dropna(subset=['tweet_vector'], inplace=True)
-            train_df['average_vector'] = train_df['tweet_vector'].apply(
+            train_df['final_vector'] = train_df['tweet_vector'].apply(
                 util.average_vec)
+
+
+
+
 
 
         if model_selection_ouput == 'Random Forest Classifier':
@@ -176,48 +214,50 @@ with data_prep_machine_learning:
                                             random_state = RANDOM_STATE, n_jobs = -1)
 
 
-        # for pretrained vectorizers, cross validation,
+        # for pretrained vectorizers-- cross validation,
 
-        if (vectoriser_output == 'glove_gigaword_300' or vectoriser_output == 'glove_twitter_50'):
+        if (vectoriser_output == 'glove_gigaword_100' or vectoriser_output == 'glove_twitter_50' or vectoriser_output=='distilroberta_v1'):
 
-            st.write(train_df.head(1))
+
             output_dic=util.cv_score_model(df = train_df[[
-                                                'target', 'average_vector']], folds = number_of_folds_input,
-                                                model = model_selection, feature_column = 'average_vector')
+                                                'target', 'final_vector']], folds = number_of_folds_input,
+                                                model = model_selection, feature_column = 'final_vector')
 
             st.write('Mean F1 score is:   ', output_dic['f1'])
             st.write('Mean precision score is: ', output_dic['precision'])
             st.write('Mean recall score is: ', output_dic['recall'])
             st.write('Mean roc score is: ', output_dic['roc'])
 
-            #storing the vectorizer in session state to be used for user input classification
-            if 'vectorizer' not in st.session_state:
-                st.session_state['vectorizer'] = vectorizer
 
-            if 'option' not in st.session_state:
-                st.session_state['option'] = 0
 
 
 
             # stacking the average vectors in array[[]] format, else  format was arr[arr[],arr[],arr[]],
             #  stacking the whole dataset, so that whole dataset can be trained .
 
-            train_set=np.vstack(train_df['average_vector'])
+            train_set=np.vstack(train_df['final_vector'])
 
             # training the model on whole dataset, to save the model for later use
             fitted_model=model_selection.fit(
             train_set, train_df['target'])
 
-            if 'clf_model' not in st.session_state:
-                st.session_state['clf_model'] = fitted_model
 
-            st.session_state['vectorizer'] = vectorizer
+
+            if vectoriser_output=='distilroberta_v1':
+                st.session_state['option'] = 'bert'
+            else:
+                st.session_state['option'] = 'pretrained'
+
+
             st.session_state['clf_model'] = fitted_model
-            st.session_state['option'] = 0
+            st.session_state['vectorizer'] = vectorizer
+
+
+
+
 
         if (vectoriser_output == 'CountVectoriser' or vectoriser_output == 'TfidVectoriser'):
 
-            st.write("cv time")
 
             train_df['target'] = tweets_df['target']
             output_dic = util.cv_score_model( model = model_selection , df = train_df,
@@ -228,24 +268,16 @@ with data_prep_machine_learning:
             st.write('Mean recall score is: ', output_dic['recall'])
             st.write('Mean roc score is: ', output_dic['roc'])
 
-            #storing the vectorizer in session state to be used for user input classification
-            if 'vectorizer' not in st.session_state:
-                st.session_state['vectorizer'] = vectorizer
-                st.write('vectorizer stored')
 
-            if 'option' not in st.session_state:
-                st.session_state['option'] = 1
 
 
             fitted_model = model_selection.fit(train_df.drop('target',axis=1),train_df['target'])
 
-            if 'clf_model' not in st.session_state:
-                st.session_state['clf_model'] = fitted_model
 
 
-            st.session_state['vectorizer'] = vectorizer
-            st.session_state['option'] = 1
+            st.session_state['option'] = 'countfid'
             st.session_state['clf_model'] = fitted_model
+            st.session_state['vectorizer'] = vectorizer
 
 
 
@@ -305,7 +337,7 @@ with user_input:
     # after user presses the submit button this  then the following steps will execute
     if user_form_submit_button:
 
-        st.write(st.session_state['option'])
+
 
         if user_input_tweet == '' or user_input_tweet.isdigit():
             st.write('Give proper tweet')
@@ -317,9 +349,10 @@ with user_input:
             cleaned_text=util.user_input_data_cleaning(user_input_tweet)
 
 
-            if st.session_state['option'] == 1:
+            if st.session_state['option'] == 'countfid':  #count vectorizer or tfidf
             # count and tfidf
-                st.write('count vec')
+
+
                 vectorizer = st.session_state['vectorizer']
                 output = vectorizer.transform([cleaned_text])
                 user_input = pd.DataFrame(output.todense(), columns = vectorizer.get_feature_names_out())
@@ -329,8 +362,9 @@ with user_input:
 
 
             # pre trained vectorizer
-            if st.session_state['option'] == 0:
-                st.write('pre vec')
+            if st.session_state['option'] == 'pretrained':
+
+
                 vectorizer = st.session_state['vectorizer']
 
                 vectorized_input_tweet=util.tweet_vec(cleaned_text, vectorizer)
@@ -341,6 +375,18 @@ with user_input:
                     vectorized_input_tweet_average, (1, -1))
 
                 pred=st.session_state['clf_model'].predict(vectorized_input_tweet_average)
+
+
+            if st.session_state['option'] == 'bert':
+
+
+                vectorizer = st.session_state['vectorizer']
+
+                vectorized_input_tweet = vectorizer.encode(cleaned_text)
+
+                vectorized_input_tweet = np.reshape(vectorized_input_tweet, (1,-1))
+
+                pred = st.session_state['clf_model'].predict(vectorized_input_tweet)
 
 
 
