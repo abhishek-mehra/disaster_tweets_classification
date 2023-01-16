@@ -2,6 +2,10 @@
 
 Twitter disaster classification
 Twitter is a platform for news and public discourse amongst people, governments, and corporate entities. There are about 237 million users who regularly share news, opinions, and topics. Additionally, it is a location where people can share incidents and disasters.
+- 237 million daily active users, 500 million tweets sent per day
+- Twitter is a place for governments, people ideas and news sharing
+- Social media websites have become source of real time news sharing
+- Twitter and other social media platforms have emerged as popular channels for communication during emergencies.
 
 Why:
 I am a frequent Twitter user who uses it to follow specific people and find a lot of useful information. I chose this dataset from the Twitter First NLP project for that purpose. I chose a basic project to start with, which will help with the basics of NLP.

@@ -7,12 +7,13 @@ import re
 import string
 from nltk.tokenize import word_tokenize
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+
 from xgboost import train
 import streamlit as st
 import nltk
 from nltk.stem import WordNetLemmatizer, PorterStemmer
-from nltk.corpus import stopwords
-nltk.download('stopwords')
+# from nltk.corpus import stopwords
+# nltk.download('stopwords')
 nltk.download('wordnet')
 nltk.download('omw-1.4')
 nltk.download('words')
@@ -22,8 +23,16 @@ import pickle
 RANDOM_STATE = 1
 
 
-@st.cache
+# @st.cache
 def cv_score_model(df, model, folds=5 ,feature_column=None ,label_col_name="target"):
+
+
+    #the progress bar, with each fold the progress bar will increase, with each fold the incremennt will be of 1/folds
+    my_bar = st.progress(0)
+    percent_complete = 0
+    increment = 1/folds   #20
+
+
 
     y = df[label_col_name].values  #dataframe to numpy array
 
@@ -66,6 +75,9 @@ def cv_score_model(df, model, folds=5 ,feature_column=None ,label_col_name="targ
 
         rec = recall_score(y_test,pred)
         recall.append(rec)
+
+        percent_complete = percent_complete+ increment
+        my_bar.progress(percent_complete)
 
 
 
@@ -136,13 +148,13 @@ def remove_punct(text):
 # Stopwords removal
 
 
-def remove_stopwords(text):
-    stop_words = set(stopwords.words('english'))
-    d = ''
-    for i in text.split():
-        if i not in stop_words:
-            d = d + ' ' + i
-    return d.strip()
+# def remove_stopwords(text):
+#     stop_words = set(stopwords.words('english'))
+#     d = ''
+#     for i in text.split():
+#         if i not in stop_words:
+#             d = d + ' ' + i
+#     return d.strip()
 
 
 # Replace number with a tag
@@ -212,8 +224,8 @@ def data_cleaning(df):
     df2['cleaned_text'] = df2['cleaned_text'].apply(lambda x: remove_url(x))
     df2['cleaned_text'] = lowercasing(df2['cleaned_text'])
     df2['cleaned_text'] = df2['cleaned_text'].apply(lambda x: remove_punct(x))
-    df2['cleaned_text'] = df2['cleaned_text'].apply(
-        lambda x: remove_stopwords(x))
+    # df2['cleaned_text'] = df2['cleaned_text'].apply(
+        # lambda x: remove_stopwords(x))                            #not removing stop words
     df2['cleaned_text'] = df2['cleaned_text'].apply(
         lambda x: separate_num_word(x))
     df2['cleaned_text'] = df2['cleaned_text'].apply(
@@ -226,8 +238,8 @@ def data_cleaning(df):
 
 
 def user_input_data_cleaning(text):
-    cleaned_text = remove_stopwords(text)
-    cleaned_text = remove_url(cleaned_text)
+    # cleaned_text = remove_stopwords(text)
+    cleaned_text = remove_url(text)
     cleaned_text = remove_punct(cleaned_text)
     cleaned_text = separate_num_word(cleaned_text)
 
