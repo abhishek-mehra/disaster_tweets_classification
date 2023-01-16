@@ -132,10 +132,10 @@ with eda.expander("Know more of the options to be utilized"):
         """
     - I have used 4 type of vectorizers:
 
-        -  CountVectorizer- Convert a collection of text documents to a matrix of token counts.
+        -CountVectorizer- Convert a collection of text documents to a matrix of token counts.
 
         - TFIDF- Convert a collection of raw documents to a matrix of TF-IDF features.
-         This vectorizer produces vectors  giving importance to word frequency in a document
+        This vectorizer produces vectors  giving importance to word frequency in a document
         and more importance to less frequent words in collection of documents.
 
         - Glove- GloVe is an algorithm that generates numerical representations for words by analyzing their co-occurrence statistics in a corpus.
