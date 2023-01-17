@@ -8,28 +8,31 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from xgboost import XGBClassifier, train
 import os
 
+
 import util
 from sentence_transformers import SentenceTransformer
 from gensim.models import KeyedVectors
 
 
+
+
 current_dir = os.path.dirname(__file__)
+
 
 # storing the vectorizer in the session state, for reruns it will not load up again and again
 # if 'vectorizer_glove' not in st.session_state:
 #     glove_path = os.path.join(current_dir, "..", "model/glove_vectorizer")
 #     st.session_state['vectorizer_glove'] = loaded = KeyedVectors.load(glove_path)
 #     st.write("vectorizer_glove downloaded....")
-
+RANDOM_STATE = 1
 
 eda = st.container()
 data_prep_machine_learning = st.container()
 user_input = st.container()
 
-# setting random state to 1
-RANDOM_STATE = 1
 
-# initializing sessions
+
+# initializing sessions, this is to store the ml model, vectorizer to be used in different containers
 if 'clf_model' not in st.session_state:
     st.session_state['clf_model'] = 'fitted_model'
 
@@ -46,9 +49,21 @@ current_dir = os.path.dirname(__file__)
 # this will tell that file is in previous directory i.e one step behind the current directory in data folder
 train_data_fp = os.path.join(current_dir, "..", "data/train.csv")
 
+#  introduction tldr - machine learning hyper parameter, classify your input
+
+
+
+
 
 with eda:
+
     st.header("Disaster Tweet Identifier ")
+    # st.subheader("Introduction")
+    # st.markdown("[Introduction](#Introduction)")
+
+    # st.markdown("[Dataset](#Dataset)")
+
+
 
     st.markdown(
             """Twitter is a platform for news and public discourse.
@@ -123,19 +138,16 @@ with eda.expander("Know more of the options to be utilized"):
 
     st.markdown(
         """
-        - The data cleaning button removes unnecessary information such as URLs, emojis from tweets, and also simplifies words to their base form (lemmatization) to improve the accuracy and efficiency of the model. """)
-
-    st.markdown(
-        """
+        - The data cleaning button removes unnecessary information such as URLs, emojis from tweets, and also simplifies words to their base form (lemmatization) to improve the accuracy and efficiency of the model.
         - Vectorizer will convert the tweets in vector(numerical form) for the machine learning model to understand.""")
 
     st.markdown(
         """
     - I have used 4 type of vectorizers:
 
-        -CountVectorizer- Convert a collection of text documents to a matrix of token counts.
+        - CountVectorizer:Convert a collection of text documents to a matrix of token counts.
 
-        - TFIDF- Convert a collection of raw documents to a matrix of TF-IDF features.
+        - TFIDF: Convert a collection of raw documents to a matrix of TF IDF features.
         This vectorizer produces vectors  giving importance to word frequency in a document
         and more importance to less frequent words in collection of documents.
 
@@ -160,7 +172,7 @@ with eda.expander("Know more of the options to be utilized"):
 
 
 with data_prep_machine_learning:
-    st.subheader('Machine Learning training and cross-validation ')
+    st.subheader('Machine Learning training and cross-validation')
 
     # making a form for data preparations options
     form_dp = st.form(key='dp')
