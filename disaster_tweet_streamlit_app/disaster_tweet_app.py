@@ -1,4 +1,5 @@
 from imp import load_compiled
+from platform import machine
 from sklearn.ensemble import RandomForestClassifier
 import streamlit as st
 import pandas as pd
@@ -185,7 +186,7 @@ with data_prep_machine_learning:
         'How many folds in Cross Validation?', min_value=2, max_value=6, step=1)
 
     data_prep_form_submit_button_output = form_dp.form_submit_button(
-        "Submit for machine learning training and cross-validation")
+        "Train And Cross Validate")
 
     if data_prep_form_submit_button_output:
         if data_cleaning_ouput == 'Yes':
@@ -362,71 +363,92 @@ with user_input:
 
     user_input_tweet = input_form.text_input(
         'Enter a tweet to check if it is a disaster related tweet or not')
-    st.write('**_Your_ input:**', user_input_tweet)
+    st.write('**Your input:**', user_input_tweet)
 
     # when user presses the submit button, it will be stored in this
     user_form_submit_button = input_form.form_submit_button(
-        'Submit your input')
+        'Predict')
 
     # after user presses the submit button this  then the following steps will execute
     if user_form_submit_button:
-
-        if user_input_tweet == '' or user_input_tweet.isdigit():
-            st.write('Input a proper tweet')
-
-        else:
-
-            # cleaning user input text
-            cleaned_text = util.user_input_data_cleaning(user_input_tweet)
-
-            if st.session_state['option'] == 'countfid':  # count vectorizer or tfidf
-                # count and tfidf
-
-                vectorizer = st.session_state['vectorizer']
-                output = vectorizer.transform([cleaned_text])
-                user_input = pd.DataFrame(
-                    output.todense(), columns=vectorizer.get_feature_names_out())
-                st.write('')
-                pred = st.session_state['clf_model'].predict(user_input)
-                st.write('done')
-
-            # pre trained vectorizer
-            if st.session_state['option'] == 'pretrained':
+        if data_prep_form_submit_button_output:
 
 
-                vectorizer = st.session_state['vectorizer']
-
-                vectorized_input_tweet = util.tweet_vec(
-                    cleaned_text, vectorizer)
-
-                vectorized_input_tweet_average = util.average_vec(
-                    vectorized_input_tweet)
-                vectorized_input_tweet_average = np.reshape(
-                    vectorized_input_tweet_average, (1, -1))
-
-                pred = st.session_state['clf_model'].predict(
-                    vectorized_input_tweet_average)
-
-            if st.session_state['option'] == 'bert':
-
-
-
-                vectorizer = st.session_state['vectorizer']
-
-                vectorized_input_tweet = vectorizer.encode(cleaned_text)
-
-                vectorized_input_tweet = np.reshape(
-                    vectorized_input_tweet, (1, -1))
-
-                pred = st.session_state['clf_model'].predict(
-                    vectorized_input_tweet)
-
-            if (pred == 0):
-
-                st.markdown('**_Prediction_**: Not a disaster tweet')
+            if user_input_tweet == '' or user_input_tweet.isdigit():
+                st.write('Input a proper tweet')
 
             else:
-                st.write('**_Prediction_**: Disaster tweet')
+
+                # cleaning user input text
+                cleaned_text = util.user_input_data_cleaning(user_input_tweet)
+
+                if st.session_state['option'] == 'countfid':  # count vectorizer or tfidf
+                    # count and tfidf
+
+                    vectorizer = st.session_state['vectorizer']
+                    output = vectorizer.transform([cleaned_text])
+                    user_input = pd.DataFrame(
+                        output.todense(), columns=vectorizer.get_feature_names_out())
+                    st.write('')
+                    pred = st.session_state['clf_model'].predict(user_input)
+                    st.write('done')
+
+                # pre trained vectorizer
+                if st.session_state['option'] == 'pretrained':
+
+
+                    vectorizer = st.session_state['vectorizer']
+
+                    vectorized_input_tweet = util.tweet_vec(
+                        cleaned_text, vectorizer)
+
+                    vectorized_input_tweet_average = util.average_vec(
+                        vectorized_input_tweet)
+                    vectorized_input_tweet_average = np.reshape(
+                        vectorized_input_tweet_average, (1, -1))
+
+                    pred = st.session_state['clf_model'].predict(
+                        vectorized_input_tweet_average)
+
+                if st.session_state['option'] == 'bert':
+
+
+
+                    vectorizer = st.session_state['vectorizer']
+
+                    vectorized_input_tweet = vectorizer.encode(cleaned_text)
+
+                    vectorized_input_tweet = np.reshape(
+                        vectorized_input_tweet, (1, -1))
+
+                    pred = st.session_state['clf_model'].predict(
+                        vectorized_input_tweet)
+
+        else:
+            cleaned_text = util.user_input_data_cleaning(user_input_tweet)
+            bert_path = os.path.join(
+                current_dir, '..', 'model/distilroberta_v1')
+            vectorizer = SentenceTransformer(bert_path)
+
+            machine_learning_model_path = os.path.join(current_dir,'..','model/machine_learning_model.pickle')
+
+            clf_model = util.load_pickle(machine_learning_model_path)
+
+            vectorized_input_tweet = vectorizer.encode(cleaned_text)
+
+            vectorized_input_tweet = np.reshape(
+                vectorized_input_tweet, (1, -1))
+
+            pred = clf_model.predict(
+                vectorized_input_tweet)
+
+
+        if (pred == 0):
+
+            st.markdown('**_Prediction_**: Not a disaster tweet')
+
+        else:
+            st.write('**_Prediction_**: Disaster tweet')
 
  # # setting current directory
         # current_dir=os.path.dirname(__file__)
