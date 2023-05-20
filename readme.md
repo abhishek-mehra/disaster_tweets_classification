@@ -25,9 +25,8 @@ Pre trained **GLoVe -** GloVe is an unsupervised learning algorithm for obtainin
 
 GloVe is a technique that takes a large corpus of text data, and uses the co-occurrence statistics of words within that data to train a set of word vectors. These vectors are able to capture the meaning and context of words in a way that can be used as input for machine learning models. It uses the co-occurrence statistics of words to understand their context and relationships and then it represents them in a multi-dimensional vector space.
 
-**SentenceTransformers**  is a Python framework for state-of-the-art sentence, text and image embeddings. I have used [sentence transformer](https://www.notion.so/CO-OP-Applications-933172e1426d4a34b6c18394d82918f4). We used the pretrained **`[distilroberta-base](https://huggingface.co/distilroberta-base)`**
- model and fine-tuned in on a 1B sentence pairs dataset. We use a contrastive learning objective: given a sentence from the pair, the model should predict which out of a set of randomly sampled other sentences, was actually paired with it in our dataset
-
+**SentenceTransformers**  is a Python framework for state-of-the-art sentence, text and image embeddings. I have used [sentence transformer](https://www.notion.so/CO-OP-Applications-933172e1426d4a34b6c18394d82918f4). I used the pretrained **`[distilroberta-base](https://huggingface.co/distilroberta-base)`**
+ model.
 #### Machine learning models and Metrics
 
 I utilised cross validation to train and evaluate my dataset.I made use of two machine learning models to train my data. RandomForestClassifier and XGBoost were used with varying hyperparameters.
